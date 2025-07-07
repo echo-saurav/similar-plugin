@@ -1,8 +1,74 @@
-/*
 
-This CSS file will be included with your plugin, and
-available in the app when your plugin is enabled.
+/*Side pane*/
+.similarNotes{
+	margin: 0;
+	padding: 0!important;
+}
 
-If your plugin does not need CSS, delete this file.
 
-*/
+.similarNotes .heading{
+	position: sticky;
+	top: 0;
+	width: 100%;
+	padding: 10px;
+	background: var(--background-secondary);
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+
+.similarNotes .heading div {
+	display: inline;
+	color: var(--text-muted);
+}
+
+.similarNotes .heading .filename{
+	margin-left: 5px;
+	color:  var(--text-accent);
+}
+
+.similarNotes .listContainer{
+
+}
+
+.similarNotes .listContainer .list .item{
+	padding: 10px;
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.similarNotes .listContainer .list .item .content{
+	background:  var(--background-primary);
+	font-size: var(--font-ui-small);
+	padding: 10px;
+	border-radius: 5px;
+	border: 1px solid var(--background-modifier-border);
+}
+
+.similarNotes .listContainer .list .item .filename{
+	color:  var(--text-normal);
+	font-size:  var(--font-ui-small);
+	padding: 5px;
+	border-radius: 5px;
+	margin-bottom: 5px;
+	font-weight: bold;
+}
+
+.similarNotes .listContainer .list .item .filename:hover {
+	background: var(--background-modifier-border);
+
+}
+
+.similarNotes .listContainer .list .item .score{
+	font-size: var(--font-ui-smaller);
+	margin-bottom: 5px;
+	margin-left: 5px;
+}
+
+.similarNotes .listContainer .list .item .content{
+	color: var(--text-muted);
+}
+
+.similarNotes .listContainer .status{
+	text-align: center;
+	font-size: var(--font-ui-smaller);
+	padding: 20px;
+}

@@ -9,99 +9,34 @@ export class QdrantDB {
 	private qdrantURL: string
 	private ollamaURL: string
 	private ollamaModel: string
+	private vectorSize: number
 	private collectionName: string
 	private embeddingAPI: Embeddings
+	private limit: number
+	private score: number
 
 
 	constructor(qdrantURL: string, collectionName: string,
-				ollamaUrl: string, ollamaModel: string) {
+				ollamaUrl: string, ollamaModel: string, vectorSize: number,
+				limit: number, score: number) {
 		this.qdrantURL = qdrantURL;
 		this.ollamaModel = ollamaModel;
+		this.vectorSize = vectorSize;
 		this.ollamaURL = ollamaUrl;
 		this.collectionName = collectionName;
 		//
 		this.embeddingAPI = new Embeddings(this.ollamaURL, this.ollamaModel);
 		this.client = new QdrantClient({url: this.qdrantURL})
+		//
+		this.limit = limit;
+		this.score = score;
 	}
 
 
-	async init(): Promise<boolean> {
-		// create collection if not exist
-		return this.client.collectionExists(this.collectionName)
-			.then(async exists => {
-				if (exists.exists) {
-					console.log("collection exists")
-					return Promise.resolve(true);
-				} else {
-					console.log("collection doesn't exist")
-					const res = await this.createCollection(this.collectionName)
-					console.log(res)
-					return Promise.resolve(true);
-				}
-			})
-	}
-
-	async createCollection(collectionName: string) {
-		console.log("creating", collectionName)
-		await this.client.createCollection(collectionName, {
-			vectors: {
-				size: 768,
-				distance: 'Cosine'
-			}
-		})
-	}
-
-	bulkInsert(content: object[]): Promise<object> {
-
-
-		return Promise.resolve({});
-	}
-
-	async delete(file: TFile) {
-		const uuid= this.getUUIDFromPath(file.path)
-		return  this.client.delete(this.collectionName, {
-			wait: true,
-			points:[uuid]
-		})
-	}
-
-	async deleteAll(id: string): Promise<void> {
-
-		await this.client.deleteCollection(this.collectionName)
-		console.log("deleting", this.collectionName)
-		return Promise.resolve(undefined);
-	}
-
-	doesExist(id: string): Promise<void> {
-		return Promise.resolve(undefined);
-	}
-
-	async insert(content: string): Promise<void> {
-		return Promise.resolve(undefined);
-	}
-
-	async query(query: string, limit: number) {
-		const embedding = await this.embeddingAPI.getEmbeddings(query)
-
-		const res = this.client.query(
-			this.collectionName,
-			{
-				query: embedding,
-				with_payload: true
-			}
-		)
-		return res
-	}
-
-	update(id: string): Promise<void> {
-		return Promise.resolve(undefined);
-	}
-
-	async upsert(content: string, file:TFile): Promise<{
+	async upsert(content: string, file: TFile): Promise<{
 		operation_id?: number | null | undefined;
 		status: "acknowledged" | "completed";
 	}> {
-
 
 		const embedding = await this.embeddingAPI.getEmbeddings(content)
 		const uuid = this.getUUIDFromPath(file.basename)
@@ -119,12 +54,50 @@ export class QdrantDB {
 			}
 		}
 
-		console.log("updating", payload)
-
 		return this.client.upsert(this.collectionName, {
 			points: [payload]
 		})
 	}
+
+	async query(filePath: string, query: string, limit: number) {
+		const embedding = await this.embeddingAPI.getEmbeddings(query)
+
+		return this.client.query(
+			this.collectionName,
+			{
+				query: embedding,
+				with_payload: true,
+				limit: limit ? limit : this.limit,
+				score_threshold: this.score,
+				filter: {
+					must_not: [
+						{key: "path", match: {value: filePath}},
+					]
+				}
+			}
+		)
+	}
+
+
+	async delete(path:string) {
+
+		return this.client.delete(this.collectionName, {
+			wait: true,
+			filter: {
+				must:[
+					{key: "path", match: {value: path}},
+				]
+			}
+		})
+	}
+
+
+
+	async deleteCollection(collectionName: string) {
+		await this.client.deleteCollection(collectionName)
+		console.log("deleting", this.collectionName)
+	}
+
 
 	getUUIDFromPath(path: string) {
 		const namespace = "550e8400-e29b-41d4-a716-446655440000"
@@ -198,6 +171,39 @@ export class QdrantDB {
 
 	getDatabaseType(): string {
 		return "qdrant"
+	}
+
+
+	async init(): Promise<boolean> {
+		// create collection if not exist
+		return this.client.collectionExists(this.collectionName)
+			.then(async exists => {
+				if (exists.exists) {
+					console.log("collection exists")
+					return Promise.resolve(true);
+				} else {
+					console.log("collection doesn't exist")
+					const res = await this.createCollection(this.collectionName, this.vectorSize)
+					console.log(res)
+					return Promise.resolve(true);
+				}
+			})
+	}
+
+	async createCollection(collectionName: string, vectorSize: number) {
+		console.log("creating", collectionName)
+		await this.client.createCollection(collectionName, {
+			vectors: {
+				size: vectorSize,
+				distance: 'Cosine'
+			}
+		})
+	}
+
+	updateConfig(limit: number, score: number){
+		console.log("updating database", limit, score)
+		this.score=score;
+		this.limit=limit;
 	}
 
 }
