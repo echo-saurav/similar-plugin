@@ -32,8 +32,9 @@ export class SimilarNotesView extends ItemView {
 	}
 
 	async updateView(tfFile: TFile) {
-		// if ignored dirs
-		if(this.plugin.settings.ignoreDirs.includes(tfFile.path)) {
+		if (this.plugin.isIgnoredFiles(tfFile)){
+			this.listEl.empty()
+			this.currentFileEl.setText(tfFile.basename)
 			this.statusEL.setText(`Ignored files, please remove "${tfFile.parent?.path}" from ignored dirs in the settings if you want to include this file in the search result`)
 			return
 		}
@@ -41,7 +42,8 @@ export class SimilarNotesView extends ItemView {
 		// check if note has any content for search
 		this.statusEL.setText("Searching...")
 		this.currentFileEl.setText(tfFile.basename)
-		const content = await this.app.vault.cachedRead(tfFile);
+		const fileText = await this.app.vault.cachedRead(tfFile);
+		const content = this.plugin.database.stripMarkdown(fileText)
 		if (content.trim().length==0) {
 			this.statusEL.setText("Nothing matched for this note")
 			this.listEl.empty()
@@ -51,7 +53,7 @@ export class SimilarNotesView extends ItemView {
 		// search
 		const res = await this.plugin.database
 			.query(tfFile.path,
-				this.plugin.database.stripMarkdown(content),
+				content,
 				this.plugin.settings.limit)
 
 
