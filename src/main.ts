@@ -43,6 +43,8 @@ export default class SimilarNotesPlugin extends Plugin {
 		this.registerEvents()
 		this.registerCommands()
 
+		console.log('count', await this.database.count())
+
 	}
 
 	async databaseInit() {
@@ -103,29 +105,59 @@ export default class SimilarNotesPlugin extends Plugin {
 		if (!(file instanceof TFile)) {
 			return
 		}
-		const content = await this.app.vault.cachedRead(file);
-		const cleanContent = this.database.stripMarkdown(content);
-		if (cleanContent) {
-			await this.database.upsert(cleanContent, file)
+
+		if (this.isIgnoredFiles(file)) {
+			const content = await this.app.vault.cachedRead(file);
+			const cleanContent = this.database.stripMarkdown(content);
+			if (cleanContent) {
+				// update content in database
+				await this.database.upsert(cleanContent, file)
+			} else {
+				// or delete anything in the database with this path if nothing is in the file
+				await this.database.delete(file.path)
+			}
 		}
 
 	}
 
 	async scanVault() {
-		const files = this.app.vault.getMarkdownFiles();
-		const notice = new Notice("Start scanning files", 0)
+		const files = this.getAllFiles()
+		const notice = new Notice("Start uploading files", 0)
 
 		for (const file of files) {
-			if(!this.settings.ignoreDirs.includes(file.path)) {
-				const index = files.indexOf(file);
-				await this.updateVector(file)
-				notice.setMessage(`${index}/${files.length} ${file.name}`)
-			}
+			const index = files.indexOf(file);
+			await this.updateVector(file)
+			notice.setMessage(`${index}/${files.length} ${file.name}`)
 		}
 
-		notice.hide()
 
+		notice.hide()
 		new Notice("Done uploading files")
+
+	}
+
+	isIgnoredFiles(file: TFile) {
+		let parentPath
+		if (file.parent && file.parent.path) {
+			parentPath = file.parent.path;
+		}
+
+		if (this.settings.ignoreDirs.length > 0
+			&& (parentPath && this.settings.ignoreDirs.includes(parentPath))) {
+			return true
+		}
+	}
+
+	getAllFiles(): TFile[] {
+		const allFiles = this.app.vault.getMarkdownFiles();
+		const files: TFile[] = [];
+		allFiles.forEach((file) => {
+
+			if (this.isIgnoredFiles(file)) {
+				files.push(file);
+			}
+		})
+		return files;
 
 	}
 
@@ -150,7 +182,9 @@ export default class SimilarNotesPlugin extends Plugin {
 			id: 'scan-all-notes',
 			name: 'Sync all notes',
 			callback: async () => {
+				new Notice("Deleting collections")
 				await this.database.deleteCollection(this.app.vault.getName())
+				new Notice("Recreating new collections")
 				await this.database.createCollection(
 					this.app.vault.getName(),
 					this.settings.vectorSize
