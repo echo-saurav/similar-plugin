@@ -41,6 +41,7 @@
 	padding: 10px;
 	border-radius: 5px;
 	border: 1px solid var(--background-modifier-border);
+	overflow: scroll;
 }
 
 .similarNotes .listContainer .list .item .filename{
@@ -68,7 +69,8 @@
 }
 
 .similarNotes .listContainer .status{
-	text-align: center;
+	text-align: start;
 	font-size: var(--font-ui-smaller);
-	padding: 20px;
+	color: var(--text-muted);
+	padding: 10px 0 0 15px;
 }

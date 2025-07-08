@@ -99,5 +99,17 @@ export class SimilarNotesSettingTab extends PluginSettingTab {
 						}
 					})
 			})
+
+		new Setting(containerEl)
+			.setName("Ignore dirs")
+			.setDesc("Ignore dirs that you dont want to show in search, if you want to add multiple then use ';' for separator. example: templates;archives")
+			.addText(dirs=>{
+				dirs.setPlaceholder("dirs")
+					.setValue(this.plugin.settings.ignoreDirs.join(';'))
+					.onChange(async val => {
+						this.plugin.settings.ignoreDirs = val.split(';');
+						await this.plugin.saveSettings();
+					})
+			})
 	}
 }

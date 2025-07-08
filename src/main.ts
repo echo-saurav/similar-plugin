@@ -16,6 +16,7 @@ interface SimilarNotesSettings {
 	delay: number
 	score: number
 	limit: number
+	ignoreDirs: string[]
 }
 
 
@@ -26,7 +27,8 @@ const DEFAULT_SETTINGS: SimilarNotesSettings = {
 	vectorSize: 768,
 	delay: 2000,
 	score: .5,
-	limit: 20
+	limit: 20,
+	ignoreDirs: []
 }
 
 export default class SimilarNotesPlugin extends Plugin {
@@ -114,9 +116,11 @@ export default class SimilarNotesPlugin extends Plugin {
 		const notice = new Notice("Start scanning files", 0)
 
 		for (const file of files) {
-			const index = files.indexOf(file);
-			await this.updateVector(file)
-			notice.setMessage(`${index}/${files.length} ${file.name}`)
+			if(!this.settings.ignoreDirs.includes(file.path)) {
+				const index = files.indexOf(file);
+				await this.updateVector(file)
+				notice.setMessage(`${index}/${files.length} ${file.name}`)
+			}
 		}
 
 		notice.hide()
