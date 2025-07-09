@@ -33,11 +33,11 @@ export class QdrantDB {
 	}
 
 
-	async upsert(content: string, file: TFile): Promise<{
+	async upsert(content: string, file: TFile, isChunk = false): Promise<{
 		operation_id?: number | null | undefined;
 		status: "acknowledged" | "completed";
 	}> {
-
+		console.log("update",file.path);
 		const embedding = await this.embeddingAPI.getEmbeddings(content)
 		const uuid = this.getUUIDFromPath(file.basename)
 
@@ -50,7 +50,8 @@ export class QdrantDB {
 				name: file.basename,
 				ctime: file.stat.ctime,
 				mtime: file.stat.mtime,
-				content: content
+				content: content,
+				isChunk: isChunk
 			}
 		}
 
@@ -78,19 +79,28 @@ export class QdrantDB {
 		)
 	}
 
-
-	async delete(path:string) {
-
-		return this.client.delete(this.collectionName, {
-			wait: true,
+	async count(withChunks = false) {
+		return this.client.count(this.collectionName, {
 			filter: {
-				must:[
-					{key: "path", match: {value: path}},
+				must: [
+					{key: "isChunk", match: {value: withChunks}}
 				]
 			}
 		})
 	}
 
+
+	async delete(path: string) {
+		console.log("delete",path)
+		return this.client.delete(this.collectionName, {
+			wait: true,
+			filter: {
+				must: [
+					{key: "path", match: {value: path}},
+				]
+			}
+		})
+	}
 
 
 	async deleteCollection(collectionName: string) {
@@ -200,10 +210,10 @@ export class QdrantDB {
 		})
 	}
 
-	updateConfig(limit: number, score: number){
+	updateConfig(limit: number, score: number) {
 		console.log("updating database", limit, score)
-		this.score=score;
-		this.limit=limit;
+		this.score = score;
+		this.limit = limit;
 	}
 
 }
