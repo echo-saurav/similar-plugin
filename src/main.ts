@@ -106,7 +106,7 @@ export default class SimilarNotesPlugin extends Plugin {
 			return
 		}
 
-		if (this.isIgnoredFiles(file)) {
+		if (!this.isIgnoredFiles(file)) {
 			const content = await this.app.vault.cachedRead(file);
 			const cleanContent = this.database.stripMarkdown(content);
 			if (cleanContent) {
